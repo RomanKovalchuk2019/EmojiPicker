@@ -27,7 +27,7 @@ public protocol EmojiPickerDelegate: AnyObject {
     /// Provides chosen emoji.
     ///
     /// - Parameter emoji: String emoji.
-    func didGetEmoji(emoji: String)
+    func didSelectEmoji(emoji: Emoji)
 }
 
 /// Emoji Picker view controller. 
@@ -117,7 +117,7 @@ public final class EmojiPickerViewController: UIViewController {
     
     /// Creates EmojiPicker view controller with provided configuration.
     public init() {
-        let emojiManager = EmojiManager()
+        let emojiManager = EmojiManager.shared
         viewModel = EmojiPickerViewModel(emojiManager: emojiManager)
         
         super.init(nibName: nil, bundle: nil)
@@ -148,17 +148,22 @@ public final class EmojiPickerViewController: UIViewController {
     // MARK: - Private Methods
     
     private func bindViewModel() {
-        viewModel.selectedEmoji.bind { [unowned self] emoji in
-            feedbackGenerator?.impactOccurred()
-            delegate?.didGetEmoji(emoji: emoji)
+        viewModel.selectedEmoji.bind { [weak self] emoji in
+            guard let emoji else {
+                self?.dismiss(animated: true)
+                return
+            }
             
-            if isDismissedAfterChoosing {
-                dismiss(animated: true, completion: nil)
+            self?.feedbackGenerator?.impactOccurred()
+            self?.delegate?.didSelectEmoji(emoji: emoji)
+            
+            if self?.isDismissedAfterChoosing == true {
+                self?.dismiss(animated: true, completion: nil)
             }
         }
         
-        viewModel.selectedEmojiCategoryIndex.bind { [unowned self] categoryIndex in
-            self.emojiPickerView.updateSelectedCategoryIcon(with: categoryIndex)
+        viewModel.selectedEmojiCategoryIndex.bind { [weak self] categoryIndex in
+            self?.emojiPickerView.updateSelectedCategoryIcon(with: categoryIndex)
         }
     }
     
@@ -225,10 +230,19 @@ extension EmojiPickerViewController: UICollectionViewDataSource, UICollectionVie
     }
     
     public func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: EmojiCollectionViewCell.identifier, for: indexPath) as? EmojiCollectionViewCell
-        else { return UICollectionViewCell() }
+        guard let cell = collectionView.dequeueReusableCell(
+            withReuseIdentifier: EmojiCollectionViewCell.identifier,
+            for: indexPath
+        ) as? EmojiCollectionViewCell else {
+            return UICollectionViewCell()
+        }
         
-        cell.configure(with: viewModel.emoji(at: indexPath))
+        guard let data = viewModel.emoji(at: indexPath) else {
+            return UICollectionViewCell()
+        }
+        
+        cell.configure(with: data.nativeEmoji)
+        
         return cell
     }
     
@@ -247,7 +261,12 @@ extension EmojiPickerViewController: UICollectionViewDataSource, UICollectionVie
     
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
-        viewModel.selectedEmoji.value = viewModel.emoji(at: indexPath)
+        
+        guard let data = viewModel.emoji(at: indexPath) else {
+            return
+        }
+        
+        viewModel.selectedEmoji.value = data
     }
 }
 

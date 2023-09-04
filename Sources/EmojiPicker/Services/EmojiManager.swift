@@ -23,15 +23,19 @@
 import Foundation
 
 /// An abstraction over entity that provides emoji set.
-protocol EmojiManagerProtocol {
+public protocol EmojiManagerProtocol {
     /// Provides a set of emojis.
     ///
     /// - Returns: Set of emojis.
-    func provideEmojis() -> EmojiSet
+    func provideEmojis() -> EmojiSet?
+    
+    func findEmoji(with id: Emoji.ID) -> Emoji?
 }
 
 /// The class is responsible for getting a relevant set of emojis for iOS version.
-final class EmojiManager: EmojiManagerProtocol {
+public class EmojiManager: NSObject, EmojiManagerProtocol {
+    
+    static let shared = EmojiManager()
     
     // MARK: - Private Properties
     
@@ -71,20 +75,49 @@ final class EmojiManager: EmojiManagerProtocol {
         return Double(operatingSystemVersion.majorVersion) + Double(operatingSystemVersion.minorVersion) / 10
     }
     
-    // MARK: - Internal Methods
+    private var storedEmojiSet: EmojiSet?
     
-    func provideEmojis() -> EmojiSet {
-        guard let path = Bundle.module.path(forResource: emojiVersion, ofType: "json"),
-              let data = try? Data(contentsOf: URL(fileURLWithPath: path))
-        else {
-            fatalError("Could not get data from \"\(emojiVersion).json\" file")
+    public override init() {
+        super.init()
+        
+        updateStoredEmojiSet()
+    }
+    
+    // MARK: - Public Methods -
+    
+    public func provideEmojis() -> EmojiSet? {
+        guard let path = Bundle.module.path(forResource: emojiVersion, ofType: "json") else {
+            debugPrint("Could not get data from \"\(emojiVersion).json\" file")
+            return nil
         }
         
-        guard let emojiSet = try? decoder.decode(EmojiSet.self, from: data)
-        else {
-            fatalError("Could not get emoji set from data: \(data)")
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
+            return nil
+        }
+        
+        guard let emojiSet = try? decoder.decode(EmojiSet.self, from: data) else {
+            debugPrint("Could not get emoji set from data: \(data)")
+            return nil
         }
         
         return emojiSet
+    }
+    
+    public func findEmoji(with id: Emoji.ID) -> Emoji? {
+        if storedEmojiSet == nil {
+            updateStoredEmojiSet()
+        }
+        
+        guard let storedEmojiSet else {
+            return nil
+        }
+        
+        return storedEmojiSet.emojis[id]
+    }
+    
+    // MARK: - Methods(private) -
+    
+    private func updateStoredEmojiSet() {
+        storedEmojiSet = provideEmojis()
     }
 }
