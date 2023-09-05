@@ -35,7 +35,7 @@ public protocol EmojiManagerProtocol {
 /// The class is responsible for getting a relevant set of emojis for iOS version.
 public class EmojiManager: NSObject, EmojiManagerProtocol {
     
-    static let shared = EmojiManager()
+    public static let shared = EmojiManager()
     
     // MARK: - Private Properties
     
