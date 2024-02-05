@@ -140,9 +140,14 @@ public final class EmojiPickerViewController: UIViewController {
     override public func viewDidLoad() {
         super.viewDidLoad()
         
-        setupPreferredContentSize()
         setupArrowDirections()
         setupHorizontalInset()
+    }
+    
+    public override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        setupPreferredContentSize()
     }
     
     // MARK: - Private Methods
