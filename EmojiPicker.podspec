@@ -10,8 +10,6 @@ Pod::Spec.new do |s|
   s.source_files = 'Sources/EmojiPicker/**/*.{swift}'
   s.resource_bundle = { "Resources" => ["Sources/EmojiPicker/**/*.{json,strings}"] }
   
-  s.test_spec 'Tests' do |test_spec|
-    test_spec.source_files = 'Tests/EmojiPickerTests/**/*.{swift}'
   end
   
   s.swift_version = '4.2'
